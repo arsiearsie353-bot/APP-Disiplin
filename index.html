@@ -1,0 +1,258 @@
+index.html
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aplikasi Disiplin Sholat & PR</title>
+  
+  <!-- BAGIAN CSS (Gaya, Warna, & Background Ramai) -->
+  <style>
+    body {
+      font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif;
+      background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #a1c4fd 100%);
+      background-attachment: fixed;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    h1 {
+      color: #d32f2f;
+      text-shadow: 2px 2px #fff;
+      font-size: 24px;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.95);
+      border: 4px dashed #ff4081;
+      border-radius: 20px;
+      padding: 20px;
+      margin-bottom: 25px;
+      box-shadow: 0px 8px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .timer {
+      font-size: 24px;
+      font-weight: bold;
+      color: #ff1744;
+      margin: 10px 0;
+    }
+
+    button {
+      background-color: #ff4081;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    button:hover {
+      background-color: #f50057;
+    }
+
+    img.preview-img {
+      width: 150px;
+      height: 150px;
+      object-fit: cover;
+      border-radius: 10px;
+      border: 3px solid #3f51b5;
+      margin-top: 10px;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      background: #e8eaf6;
+      padding: 15px;
+      border-radius: 10px;
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      border: 2px solid #7986cb;
+    }
+
+    input[type="text"], input[type="datetime-local"], input[type="file"] {
+      margin: 5px 0;
+      padding: 8px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      width: 80%;
+      max-width: 300px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>🚨 DASHBOARD DISIPLIN & ALARM TEROR 🚨</h1>
+
+    <!-- SECTION SHOLAT -->
+    <div class="card sholat-card">
+      <h2>🕌 Jadwal & Bukti Sholat</h2>
+      <p>Status: <span id="statusSholat" style="font-weight: bold; color: #d32f2f;">Menunggu Waktu Dzuhur...</span></p>
+      <div id="timerJedaSholat" class="timer">Tenggang Waktu: 10:00</div>
+      
+      <div class="upload-box">
+        <label><b>Upload Foto Bukti Sholat (Mukena/Sajadah):</b></label><br>
+        <input type="file" id="inputFotoSholat" accept="image/*"><br>
+        <button onclick="kirimBuktiSholat()">Kirim Foto & Matikan Alarm</button>
+      </div>
+      <div id="previewSholat"></div>
+    </div>
+
+    <!-- SECTION PR / TUGAS -->
+    <div class="card tugas-card">
+      <h2>📚 Pengingat PR & Deadline</h2>
+      <div class="form-tugas">
+        <input type="text" id="namaTugas" placeholder="Nama Tugas / Mata Pelajaran..."><br>
+        <label>Mulai Kapan:</label><br>
+        <input type="datetime-local" id="waktuMulai"><br>
+        <label>Terakhir (Deadline):</label><br>
+        <input type="datetime-local" id="waktuDeadline"><br>
+        <label><b>Upload Foto Soal/Tugas Asli:</b></label><br>
+        <input type="file" id="fotoSoalPR" accept="image/*"><br>
+        <button onclick="tambahTugas()">Tambah Tugas</button>
+      </div>
+
+      <h3>Daftar Tugas Kamu:</h3>
+      <ul id="daftarTugas"></ul>
+    </div>
+  </div>
+
+  <!-- Audio Suara Alarm Super Berisik -->
+  <audio id="suaraAlarm" src="https://www.soundjay.com/buttons/beep-01a.mp3" loop></audio>
+
+  <!-- BAGIAN JAVASCRIPT (Logika Timer & Alarm) -->
+  <script>
+    let audioAlarm = document.getElementById('suaraAlarm');
+    let timerJedaElement = document.getElementById('timerJedaSholat');
+    let statusSholatElement = document.getElementById('statusSholat');
+
+    // --- 1. LOGIKA SHOLAT & ALARM TENGGANG WAKTU ---
+    let detikTenggang = 10 * 60; // 10 Menit = 600 detik
+    let timerInterval = null;
+
+    function waktuDzuhurTiba() {
+      statusSholatElement.innerText = "🚨 Waktu Dzuhur Tiba! Silakan bersiap-siap.";
+      
+      timerInterval = setInterval(() => {
+        detikTenggang--;
+        
+        let menit = Math.floor(detikTenggang / 60);
+        let detik = detikTenggang % 60;
+        timerJedaElement.innerText = `Tenggang Waktu: ${menit}:${detik < 10 ? '0' : ''}${detik}`;
+
+        // Jika waktu 10 menit habis dan belum kirim foto
+        if (detikTenggang <= 0) {
+          clearInterval(timerInterval);
+          nyalakanAlarm();
+        }
+      }, 1000);
+    }
+
+    function nyalakanAlarm() {
+      statusSholatElement.innerText = "💥 ALARM BERISIK NYALA! KAMU BELUM SHOLAT!";
+      statusSholatElement.style.color = "red";
+      audioAlarm.play().catch(error => {
+        console.log("Browser memblokir autoplay audio, interaksi klik diperlukan.");
+      });
+    }
+
+    function kirimBuktiSholat() {
+      let fileInput = document.getElementById('inputFotoSholat');
+      if (fileInput.files.length === 0) {
+        alert("Wajib sertakan foto bukti sedang sholat/mukena/sajadah!");
+        return;
+      }
+
+      // Matikan Alarm
+      audioAlarm.pause();
+      audioAlarm.currentTime = 0;
+      if (timerInterval) clearInterval(timerInterval);
+
+      statusSholatElement.innerText = "✅ Alhamdulillah, Sholat Selesai & Foto Terverifikasi!";
+      statusSholatElement.style.color = "green";
+      timerJedaElement.innerText = "Tenggang Waktu: Selesai";
+
+      // Tampilkan Gambar Bukti
+      let reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById('previewSholat').innerHTML = `<p><b>Bukti Foto Kamu:</b></p><img class="preview-img" src="${e.target.result}">`;
+      };
+      reader.readAsDataURL(fileInput.files[0]);
+    }
+
+    // Jalankan simulasi waktu dzuhur otomatis 3 detik setelah web dibuka
+    setTimeout(waktuDzuhurTiba, 3000);
+
+
+    // --- 2. LOGIKA PR & DEADLINE ---
+    function tambahTugas() {
+      let nama = document.getElementById('namaTugas').value;
+      let mulai = document.getElementById('waktuMulai').value;
+      let deadline = document.getElementById('waktuDeadline').value;
+      let fotoSoal = document.getElementById('fotoSoalPR').files[0];
+
+      if (!nama || !mulai || !deadline || !fotoSoal) {
+        alert("Mohon isi semua data tugas, jadwal, dan foto soalnya terlebih dahulu!");
+        return;
+      }
+
+      let list = document.getElementById('daftarTugas');
+      let li = document.createElement('li');
+
+      let reader = new FileReader();
+      reader.onload = function(e) {
+        li.innerHTML = `
+          <strong>📌 ${nama}</strong>
+          <span>Mulai: ${mulai}</span><br>
+          <span>Deadline: ${deadline}</span>
+          <p><b>Foto Soal:</b></p>
+          <img class="preview-img" src="${e.target.result}">
+          <br><br>
+          <label><b>Upload Foto Lembar Jawaban Selesai:</b></label><br>
+          <input type="file" accept="image/*" onchange="selesaikanTugas(this)">
+        `;
+        list.appendChild(li);
+        
+        // Reset form
+        document.getElementById('namaTugas').value = '';
+        document.getElementById('waktuMulai').value = '';
+        document.getElementById('waktuDeadline').value = '';
+        document.getElementById('fotoSoalPR').value = '';
+      };
+      reader.readAsDataURL(fotoSoal);
+    }
+
+    function selesaikanTugas(input) {
+      if (input.files.length > 0) {
+        let reader = new FileReader();
+        reader.onload = function(e) {
+          let li = input.parentElement;
+          li.style.background = "#c8e6c9"; // Berubah warna hijau
+          let imgSelesai = document.createElement('div');
+          imgSelesai.innerHTML = `<p style="color: green; font-weight: bold;">✅ Status: Selesai Mengerjakan!</p><img class="preview-img" src="${e.target.result}">`;
+          li.appendChild(imgSelesai);
+          input.style.display = 'none'; // Sembunyikan input setelah diupload
+        };
+        reader.readAsDataURL(input.files[0]);
+        alert("Hore! Tugas berhasil diselesaikan dan fotonya tersimpan.");
+      }
+    }
+  </script>
+</body>
+</html>
